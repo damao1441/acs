@@ -85,6 +85,11 @@
     </build>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-driver</artifactId>
+            <version>3.2.3</version>
+        </dependency>
         <!-- Begin dependencies added for Hystrix circuit breaker functionality. -->
         <dependency>
             <groupId>com.netflix.hystrix</groupId>
@@ -281,6 +286,7 @@
                             <excludes>
                                 <exclude>**/ACSPerformanceIT.java</exclude>
                                 <exclude>**/PolicyEvalCachingWithGraphDBIT.java</exclude>
+                                <exclude>**/DSEGraphIT.java</exclude>
                             </excludes>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -447,6 +453,7 @@
                             </systemPropertyVariables>
                             <excludes>
                                 <exclude>**/ACSPerformanceIT.java</exclude>
+                                <exclude>**/DSEGraphIT.java</exclude>
                             </excludes>
                             <includes>
                                 <include>**/*IT.java</include>
@@ -665,6 +672,7 @@
                             </systemPropertyVariables>
                             <excludes>
                                 <exclude>**/ACSPerformanceIT.java</exclude>
+                                <exclude>**/DSEGraphIT.java</exclude>
                             </excludes>
                             <includes>
                                 <include>**/*IT.java</include>
