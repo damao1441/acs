@@ -3,12 +3,15 @@ package com.ge.predix.integration.test;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.commons.configuration.BaseConfiguration;
+import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.driver.Client;
 import org.apache.tinkerpop.gremlin.driver.Cluster;
 import org.apache.tinkerpop.gremlin.driver.Result;
 import org.apache.tinkerpop.gremlin.driver.remote.DriverRemoteConnection;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
@@ -85,27 +88,29 @@ public class DSEGraphIT extends AbstractTestNGSpringContextTests {
         }
     }
 
-    public void testWithTinkerGraph() throws Exception {
-//        Configuration c = new BaseConfiguration();
-//        //c.setProperty("blueprints.graph", "com.datastax.driver.dse.graph");
-//        c.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph");
-//        Graph graph = GraphFactory.open(c);
-//        System.out.println("testWithTinkerPopGraph(): graph = " + graph.toString());
+    public void testWithTinkerPopGraph() throws Exception {
+        Configuration c = new BaseConfiguration();
+        c.setProperty("gremlin.graph", "com.datastax.driver.dse.graph");
+        //c.setProperty("gremlin.graph", "org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph");
+        Graph graph = GraphFactory.open(c);
+        System.out.println("testWithTinkerPopGraph(): graph = " + graph.toString());
 
         Cluster cluster = null;
         GraphTraversalSource g = null;
         try {
             cluster = Cluster.build().addContactPoint("127.0.0.1").create();
-            System.out.println("testWithTinkerGraph(): cluster = " + cluster);
+            System.out.println("testWithTinkerPopGraph(): cluster = " + cluster);
 
-            g = EmptyGraph.instance().traversal().withRemote(DriverRemoteConnection.using(cluster, "g"));
-            System.out.println("testWithTinkerGraph(): traversal source = " + g.toString());
+            g = graph.traversal().withRemote(DriverRemoteConnection.using(cluster, "g"));
+            System.out.println("testWithTinkerPopGraph(): traversal source = " + g.toString());
 
-            g.addV("author").property("name", "Julia Child");
-            g.addV("book").property("name", "The French Chef Cookbook").property("year", 1968);
-            System.out.println("testWithTinkerGraph(): traversal source = " + g.toString());
-            Long count = g.V().count().next();
-            Assert.assertEquals(count.longValue(), 2);
+//            g.addV("author").property("name", "Julia Child").next();
+//            g.addV("book").property("name", "The French Chef Cookbook").property("year", 1968).next();
+//            graph.tx().commit();
+//
+//            System.out.println("testWithTinkerPopGraph(): traversal source = " + g.toString());
+//            Long count = g.V().count().next();
+//            Assert.assertEquals(count.longValue(), 2);
         } finally {
             if (g != null) {
                 g.close();
