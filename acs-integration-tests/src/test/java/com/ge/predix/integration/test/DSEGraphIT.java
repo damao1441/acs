@@ -6,6 +6,7 @@ import static com.ge.predix.acs.privilege.management.dao.GraphResourceRepository
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
@@ -69,68 +70,24 @@ public class DSEGraphIT extends AbstractTestNGSpringContextTests {
 
                 // Create graph schema
                 // Schema should be created after alias is set
-                results = aliasClient.submit(String.format(SCHEMA_CREATE_PROPERTY_KEY, zoneIdKey)).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): create zone id property key result = "
-                        + results.get().toString());
-                results = aliasClient.submit(String.format(SCHEMA_CREATE_PROPERTY_KEY, resourceIdKey)).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): create resource id property key result = "
-                        + results.get().toString());
-                results = aliasClient
-                        .submit(String.format(SCHEMA_CREATE_CUSTOM_VERTEX_ID, resourceLabel, zoneIdKey, resourceIdKey))
-                        .all();
-                System.out.println("testWithTinkerPopGremlinDriver(): create custom vertex id result = "
-                        + results.get().toString());
-
-                results = aliasClient.submit(SCHEMA_DESCRIBE).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): resulting schema = " + results.get().toString());
+                createCustomVertexIdSchema(aliasClient, zoneIdKey, resourceIdKey, resourceLabel);
 
                 results = aliasClient.submit(QUERY_VERTEX_COUNT).all();
                 System.out.println("testWithTinkerPopGremlinDriver(): vertices count = " + results.get().toString());
                 Assert.assertEquals(0, results.get().get(0).getLong());
 
                 // Add vertices
-                results = aliasClient.submit(String.format(QUERY_ADD_VERTEX, resourceLabel, zoneIdKey, "myzone",
-                        resourceIdKey, "resourceOne")).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): add vertex " + results.get().toString());
-//                Assert.assertEquals(results.get().get(0).getString(), String.format("v[{~label=%s, %s=%s, %s=%s}]",
-//                        resourceLabel, zoneIdKey, "myzone", resourceIdKey, "resourceOne"));
-
-                results = aliasClient.submit(String.format(QUERY_ADD_VERTEX, resourceLabel, zoneIdKey, "myzone",
-                        resourceIdKey, "resourceTwo")).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): add vertex " + results.get().toString());
-//                Assert.assertEquals(results.get().get(0).getString(), String.format("v[{~label=%s, %s=%s, %s=%s}]",
-//                        resourceLabel, zoneIdKey, "myzone", resourceIdKey, "resourceTwo"));
-
-                results = aliasClient.submit(String.format(QUERY_ADD_VERTEX, resourceLabel, zoneIdKey, "otherzone",
-                        resourceIdKey, "resourceOne")).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): add vertex " + results.get().toString());
-//                Assert.assertEquals(results.get().get(0).getString(), String.format("v[{~label=%s, %s=%s, %s=%s}]",
-//                        resourceLabel, zoneIdKey, "otherzone", resourceIdKey, "resourceOne"));
-
-                results = aliasClient.submit(String.format(QUERY_ADD_VERTEX, resourceLabel, zoneIdKey, "otherzone",
-                        resourceIdKey, "resourceTwo")).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): add vertex " + results.get().toString());
-//                Assert.assertEquals(results.get().get(0).getString(), String.format("v[{~label=%s, %s=%s, %s=%s}]",
-//                        resourceLabel, zoneIdKey, "otherzone", resourceIdKey, "resourceTwo"));
-
-                results = aliasClient.submit(String.format(QUERY_ADD_VERTEX, resourceLabel, zoneIdKey, "otherzone",
-                        resourceIdKey, "resourceThree")).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): add vertex " + results.get().toString());
-//                Assert.assertEquals(results.get().get(0).getString(), String.format("v[{~label=%s, %s=%s, %s=%s}]",
-//                        resourceLabel, zoneIdKey, "otherzone", resourceIdKey, "resourceThree"));
+                addVertex(aliasClient, resourceLabel, zoneIdKey, "myzone", resourceIdKey, "resourceOne");
+                addVertex(aliasClient, resourceLabel, zoneIdKey, "myzone", resourceIdKey, "resourceTwo");
+                addVertex(aliasClient, resourceLabel, zoneIdKey, "otherzone", resourceIdKey, "resourceOne");
+                addVertex(aliasClient, resourceLabel, zoneIdKey, "otherzone", resourceIdKey, "resourceTwo");
+                addVertex(aliasClient, resourceLabel, zoneIdKey, "otherzone", resourceIdKey, "resourceThree");
 
                 results = aliasClient.submit(QUERY_VERTEX_COUNT).all();
                 System.out.println("testWithTinkerPopGremlinDriver(): vertices count = " + results.get().toString());
                 Assert.assertEquals(5, results.get().get(0).getLong());
 
-                results = aliasClient.submit(String.format(QUERY_VERTEX, resourceLabel, zoneIdKey, "otherzone",
-                        resourceIdKey, "resourceOne")).all();
-                System.out.println("testWithTinkerPopGremlinDriver(): get vertex result = " + results.get().toString());
-                Assert.assertEquals(1, results.get().size());
-                Vertex vertex = results.get().get(0).getVertex();
-                Assert.assertEquals(resourceLabel, vertex.label());
-                Assert.assertTrue(vertex.id().toString().contains(zoneIdKey + "=otherzone"));
-                Assert.assertTrue(vertex.id().toString().contains(resourceIdKey + "=resourceOne"));
+                getVertexByCustomId(aliasClient, resourceLabel, zoneIdKey, "otherzone", resourceIdKey, "resourceOne");
             } finally {
                 // System commands cannot be executed while alias is set.
                 // There is no explicit to clear aliases but closing the client
@@ -153,6 +110,51 @@ public class DSEGraphIT extends AbstractTestNGSpringContextTests {
                 cluster.close();
             }
         }
+    }
+
+    private void createCustomVertexIdSchema(Client client, final String zoneIdKey, final String resourceIdKey,
+            final String resourceLabel) throws InterruptedException, ExecutionException {
+        CompletableFuture<List<Result>> results = client
+                .submit(String.format(SCHEMA_CREATE_PROPERTY_KEY, zoneIdKey)).all();
+        System.out.println(
+                "createCustomeVertexIdSchema(): create zone id property key result = " + results.get().toString());
+        results = client.submit(String.format(SCHEMA_CREATE_PROPERTY_KEY, resourceIdKey)).all();
+        System.out.println("createCustomeVertexIdSchema(): create resource id property key result = "
+                + results.get().toString());
+        results = client
+                .submit(String.format(SCHEMA_CREATE_CUSTOM_VERTEX_ID, resourceLabel, zoneIdKey, resourceIdKey)).all();
+        System.out.println(
+                "createCustomeVertexIdSchema(): create custom vertex id result = " + results.get().toString());
+
+        results = client.submit(SCHEMA_DESCRIBE).all();
+        System.out.println("createCustomeVertexIdSchema(): resulting schema = " + results.get().toString());
+    }
+
+    private void addVertex(Client client, final String resourceLabel, final String zoneIdKey, String zoneIdValue,
+            final String resourceIdKey, String resourceIdValue) throws InterruptedException, ExecutionException {
+        CompletableFuture<List<Result>> results = client.submit(
+                String.format(QUERY_ADD_VERTEX, resourceLabel, zoneIdKey, zoneIdValue, resourceIdKey, resourceIdValue))
+                .all();
+        System.out.println("addVertex(): " + results.get().toString());
+        Vertex vertex = results.get().get(0).getVertex();
+        Assert.assertEquals(resourceLabel, vertex.label());
+        Assert.assertTrue(vertex.id().toString().contains(zoneIdKey + "=" + zoneIdValue));
+        Assert.assertTrue(vertex.id().toString().contains(resourceIdKey + "=" + resourceIdValue));
+    }
+
+    private Vertex getVertexByCustomId(Client client, final String resourceLabel, final String zoneIdKey,
+            String zoneIdValue, final String resourceIdKey, String resourceIdValue)
+            throws InterruptedException, ExecutionException {
+        CompletableFuture<List<Result>> results = client.submit(
+                String.format(QUERY_VERTEX, resourceLabel, zoneIdKey, zoneIdValue, resourceIdKey, resourceIdValue))
+                .all();
+        System.out.println("getVertexByCustomId(): " + results.get().toString());
+        Assert.assertEquals(1, results.get().size());
+        Vertex vertex = results.get().get(0).getVertex();
+        Assert.assertEquals(resourceLabel, vertex.label());
+        Assert.assertTrue(vertex.id().toString().contains(zoneIdKey + "=" + zoneIdValue));
+        Assert.assertTrue(vertex.id().toString().contains(resourceIdKey + "=" + resourceIdValue));
+        return vertex;
     }
 
     public void testWithTinkerPopGraph() throws Exception {
