@@ -19,6 +19,10 @@ package com.ge.predix.acs;
 import static com.google.common.base.Predicates.or;
 import static springfox.documentation.builders.PathSelectors.regex;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.util.Arrays;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -26,8 +30,10 @@ import org.springframework.boot.context.embedded.FilterRegistrationBean;
 import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
+
 import com.ge.predix.acs.request.context.AcsRequestEnrichingFilter;
-import com.ge.predix.audit.filter.AuditFilter;
+import com.ge.predix.audit.AuditEventProcessor;
+import com.ge.predix.audit.AuditEventWriter;
 import com.google.common.base.Predicate;
 
 import springfox.documentation.builders.ApiInfoBuilder;
@@ -49,9 +55,6 @@ public class AccessControlService {
 
     @Autowired
     private AcsRequestEnrichingFilter acsRequestEnrichingFilter;
-
-    @Autowired
-    private AuditFilter auditFilter;
 
     private String serviceId;
 
@@ -80,11 +83,8 @@ public class AccessControlService {
     }
 
     @Bean
-    public FilterRegistrationBean auditRegistrationBean() {
-        FilterRegistrationBean auditRegistrationBean = new FilterRegistrationBean();
-        auditRegistrationBean.setEnabled(true);
-        auditRegistrationBean.setFilter(this.auditFilter);
-        return auditRegistrationBean;
+    public AuditEventProcessor auditProcessor() throws FileNotFoundException {
+        return new AuditEventWriter(Arrays.asList(System.out, new FileOutputStream("audit_out.txt")));
     }
 
     @Bean

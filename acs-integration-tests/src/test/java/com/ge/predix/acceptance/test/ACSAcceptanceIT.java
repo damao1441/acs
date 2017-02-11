@@ -191,6 +191,8 @@ public class ACSAcceptanceIT extends AbstractTestNGSpringContextTests {
             ResponseEntity<PolicyEvaluationResult> evalResponse = this.acsAdminRestTemplate.postForEntity(
                     endpoint + PolicyHelper.ACS_POLICY_EVAL_API_PATH, new HttpEntity<>(policyEvalRequest, headers),
                     PolicyEvaluationResult.class);
+            System.out.println("HERE");
+            System.out.println(evalResponse.getBody());
 
             Assert.assertEquals(evalResponse.getStatusCode(), HttpStatus.OK);
             PolicyEvaluationResult responseBody = evalResponse.getBody();
