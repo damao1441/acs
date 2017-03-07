@@ -2,6 +2,7 @@ package com.ge.predix.acs.audit;
 
 import java.util.List;
 
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -20,6 +21,8 @@ import com.ge.predix.eventhub.EventHubClientException;
 @Configuration
 @Profile("predix")
 public class ACSAuditConfiguration {
+
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ACSAuditConfiguration.class);
 
     private VcapLoaderServiceImpl vcapLoaderService = new VcapLoaderServiceImpl();
 
@@ -55,23 +58,29 @@ public class ACSAuditConfiguration {
             @Override
             public void onFailure(final com.ge.predix.audit.sdk.message.AuditEvent arg0, final FailReport arg1,
                     final String arg2) {
-                // TODO Auto-generated method stub
+                LOGGER.info("AUDIT EVENT FAILED: " + arg0.toString());
+                LOGGER.info("AUDIT FAIL REPORT: " + arg1.toString());
             }
 
             @Override
             public void onSuccees(final com.ge.predix.audit.sdk.message.AuditEvent arg0) {
-                // TODO Auto-generated method stub
+                LOGGER.info("AUDIT EVENT SUCCESS: " + arg0.toString());
             }
 
             @Override
             public void onValidate(final com.ge.predix.audit.sdk.message.AuditEvent arg0,
                     final List<ValidatorReport> arg1) {
-                // TODO Auto-generated method stub
+                LOGGER.info("AUDIT EVENT VALIDATE: " + arg0.toString());
+                for (ValidatorReport report : arg1) {
+                    LOGGER.info("AUDIT ValidatorReport: " + report.toString());
+                }
+
             }
 
             @Override
             public void onFailure(final FailReport arg0, final String arg1) {
-                // TODO Auto-generated method stub
+                LOGGER.info("AUDIT EVENT FAILED: " + arg0.toString());
+                LOGGER.info("AUDIT FAIL REPORT: " + arg1);
             }
         };
     }
