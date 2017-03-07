@@ -11,6 +11,7 @@ import com.ge.predix.audit.AuditEvent;
 import com.ge.predix.audit.AuditEventProcessor;
 import com.ge.predix.audit.sdk.AuditCallback;
 import com.ge.predix.audit.sdk.AuditClient;
+import com.ge.predix.audit.sdk.AuditClientType;
 import com.ge.predix.audit.sdk.FailReport;
 import com.ge.predix.audit.sdk.config.AuditConfiguration;
 import com.ge.predix.audit.sdk.config.vcap.VcapLoaderServiceImpl;
@@ -35,11 +36,25 @@ public class PredixEventProcessor implements AuditEventProcessor {
 
     private AuditConfiguration sdkConfig;
 
+    private String uaaUrl;
+
+    private String uaaClientId;
+
+    private String uaaClientSecret;
+
+    private String ehubZoneId;
+
+    private String ehubHost;
+
+    private int ehubPort;
+
     public PredixEventProcessor() throws AuditException, EventHubClientException {
         try {
             sdkConfig = vcapLoaderService.getConfigFromVcap();
         } catch (VcapLoadException e) {
-            e.printStackTrace();
+            sdkConfig = AuditConfiguration.builder().bulkMode(true).clientType(AuditClientType.ASYNC).uaaUrl(uaaUrl)
+                    .uaaClientId(uaaClientId).uaaClientSecret(uaaClientSecret).ehubZoneId(ehubZoneId).ehubHost(ehubHost)
+                    .ehubPort(ehubPort).build();
         }
         auditClient = new AuditClient(sdkConfig, auditCallback());
     }
@@ -63,15 +78,18 @@ public class PredixEventProcessor implements AuditEventProcessor {
                     final String arg2) {
                 // TODO Auto-generated method stub
             }
+
             @Override
             public void onSuccees(final com.ge.predix.audit.sdk.message.AuditEvent arg0) {
                 // TODO Auto-generated method stub
             }
+
             @Override
             public void onValidate(final com.ge.predix.audit.sdk.message.AuditEvent arg0,
                     final List<ValidatorReport> arg1) {
                 // TODO Auto-generated method stub
             }
+
             @Override
             public void onFailure(final FailReport arg0, final String arg1) {
                 // TODO Auto-generated method stub
