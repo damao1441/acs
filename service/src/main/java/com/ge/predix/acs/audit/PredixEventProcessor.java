@@ -26,11 +26,20 @@ public class PredixEventProcessor implements AuditEventProcessor {
     @Override
     public boolean process(final AuditEvent auditEvent) {
         AuditEventV2 predixEvent = eventMapper.map(auditEvent);
+        LOGGER.info("Starting audit");
+        LOGGER.info("AUDIT SERVICE ID: " + predixEvent.getAuditServiceId());
+        LOGGER.info("AUDIT CORRELATION ID: " + predixEvent.getCorrelationId());
+        LOGGER.info("AUDIT MESSAGE ID: " + predixEvent.getMessageId());
+        LOGGER.info("AUDIT PAYLOAD: " + predixEvent.getPayload());
+        LOGGER.info("ENTIRE EVENT: " + predixEvent.toString());
+
         try {
             this.auditClient.audit(predixEvent);
         } catch (AuditException e) {
             LOGGER.warn("Audit failed on process with event: " + predixEvent.toString());
             return false;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return true;
     }
