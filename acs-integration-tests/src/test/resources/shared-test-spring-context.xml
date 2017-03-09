@@ -42,6 +42,19 @@
         </constructor-arg>
         <property name="requestFactory" ref="httpRequestFactory"/>
     </bean>
+    
+    <bean id="auditRestTemplate"
+        class="org.springframework.security.oauth2.client.OAuth2RestTemplate">
+        <constructor-arg>
+            <bean
+                class="org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails">
+                <property name="accessTokenUri" value="https://predix-uaa.run.aws-usw02-dev.ice.predix.io/oauth/token" />
+                <property name="clientId" value="acs-audit-client" />
+                <property name="clientSecret" value="acs-audit-secret" />
+            </bean>
+        </constructor-arg>
+        <property name="requestFactory" ref="httpRequestFactory"/>
+    </bean>
 
     <!-- Begin constructing Apache HttpClient request factory for REST template. -->
 

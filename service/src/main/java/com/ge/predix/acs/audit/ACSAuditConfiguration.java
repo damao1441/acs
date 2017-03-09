@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Profile;
 
 import com.ge.predix.audit.sdk.AuditCallback;
 import com.ge.predix.audit.sdk.AuditClient;
-import com.ge.predix.audit.sdk.AuditClientType;
 import com.ge.predix.audit.sdk.FailReport;
 import com.ge.predix.audit.sdk.config.AuditConfiguration;
 import com.ge.predix.audit.sdk.config.vcap.VcapLoaderServiceImpl;
@@ -44,10 +43,19 @@ public class ACSAuditConfiguration {
     public AuditClient createAuditClient() throws AuditException, EventHubClientException {
         try {
             sdkConfig = vcapLoaderService.getConfigFromVcap();
+            sdkConfig.setUaaClientId("acs-audit-client");
+            sdkConfig.setUaaClientSecret("acs-audit-secret");
+            sdkConfig.setUaaUrl("https://predix-uaa.run.aws-usw02-dev.ice.predix.io/oauth/token");
+            System.out.println(System.getenv("AUDIT_UAA_CLIENT_SECRET"));
+            System.out.println("START HERE");
+            System.out.println(sdkConfig.getUaaClientId());
+            System.out.println(sdkConfig.getUaaClientSecret());
+            System.out.println(sdkConfig.getUaaUrl());
+            System.out.println(sdkConfig.getEhubZoneId());
+            System.out.println(sdkConfig.getEhubHost());
+            System.out.println(sdkConfig.getEhubPort());
         } catch (VcapLoadException e) {
-            sdkConfig = AuditConfiguration.builder().bulkMode(true).clientType(AuditClientType.ASYNC).uaaUrl(uaaUrl)
-                    .uaaClientId(uaaClientId).uaaClientSecret(uaaClientSecret).ehubZoneId(ehubZoneId).ehubHost(ehubHost)
-                    .ehubPort(ehubPort).build();
+            e.printStackTrace();
         }
         AuditClient auditClient = new AuditClient(sdkConfig, auditCallback());
         return auditClient;

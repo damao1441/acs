@@ -41,10 +41,15 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
+         <dependency>
+            <groupId>org.mortbay.jetty.alpn</groupId>
+            <artifactId>alpn-boot</artifactId>
+            <version>8.1.9.v20160720</version>
+        </dependency>
         <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-tcnative-boringssl-static</artifactId>
-            <version>1.1.33.Fork23</version>
+            <groupId>org.eclipse.jetty.alpn</groupId>
+            <artifactId>alpn-api</artifactId>
+            <version>1.1.3.v20160715</version>
         </dependency>
         <dependency>
             <groupId>com.ge.predix</groupId>
@@ -176,6 +181,10 @@
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
                 </exclusion>
+<!--                 <exclusion>
+                    <groupId>org.apache.tomcat.embed</groupId>
+                    <artifactId></artifactId>
+                </exclusion> -->
             </exclusions>
         </dependency>
         <dependency>
