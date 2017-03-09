@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Profile;
 
 import com.ge.predix.audit.sdk.AuditCallback;
 import com.ge.predix.audit.sdk.AuditClient;
+import com.ge.predix.audit.sdk.AuditClientType;
 import com.ge.predix.audit.sdk.FailReport;
 import com.ge.predix.audit.sdk.config.AuditConfiguration;
 import com.ge.predix.audit.sdk.config.vcap.VcapLoaderServiceImpl;
@@ -46,6 +47,7 @@ public class ACSAuditConfiguration {
             sdkConfig.setUaaClientId("acs-audit-client");
             sdkConfig.setUaaClientSecret("acs-audit-secret");
             sdkConfig.setUaaUrl("https://predix-uaa.run.aws-usw02-dev.ice.predix.io/oauth/token");
+            sdkConfig.setClientType(AuditClientType.ASYNC);
             System.out.println(System.getenv("AUDIT_UAA_CLIENT_SECRET"));
             System.out.println("START HERE");
             System.out.println(sdkConfig.getUaaClientId());

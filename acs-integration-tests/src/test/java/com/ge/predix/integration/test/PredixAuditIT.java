@@ -19,10 +19,10 @@ import com.ge.predix.test.utils.ZoneHelper;
 @ContextConfiguration("classpath:integration-test-spring-context.xml")
 public class PredixAuditIT extends AbstractTestNGSpringContextTests {
 
-    @Value("AUDIT_QUERY_URL")
+    @Value("${AUDIT_QUERY_URL}")
     private String auditQueryUrl;
     
-    @Value("AUDIT_ZONE_ID")
+    @Value("${AUDIT_ZONE_ID}")
     private String auditZoneId;
 
     @Autowired

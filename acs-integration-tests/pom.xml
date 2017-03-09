@@ -389,6 +389,7 @@
                                 <AUDIT_UAA_URL>${AUDIT_UAA_URL}</AUDIT_UAA_URL>
                                 <AUDIT_UAA_CLIENT_ID>${AUDIT_UAA_CLIENT_ID}</AUDIT_UAA_CLIENT_ID>
                                 <AUDIT_UAA_CLIENT_SECRET>${AUDIT_UAA_CLIENT_SECRET}</AUDIT_UAA_CLIENT_SECRET>
+                                <JAVA_OPTS>${JAVA_OPTS}</JAVA_OPTS>
                             </env>
                             <services>
                                 <service>
@@ -511,6 +512,7 @@
                                 <ZAC_CLIENT_SECRET>${ZAC_CLIENT_SECRET}</ZAC_CLIENT_SECRET>
                                 <AUDIT_QUERY_URL>${AUDIT_QUERY_URL}</AUDIT_QUERY_URL>
                                 <AUDIT_ZONE_ID>${AUDIT_ZONE_ID}</AUDIT_ZONE_ID>
+                                <JAVA_OPTS>${JAVA_OPTS}</JAVA_OPTS>
                             </systemPropertyVariables>
                             <excludes>
                                 <exclude>**/ACSPerformanceIT.java</exclude>
