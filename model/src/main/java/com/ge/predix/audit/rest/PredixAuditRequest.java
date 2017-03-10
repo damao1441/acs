@@ -1,13 +1,13 @@
-package com.ge.predix.integration.test;
+package com.ge.predix.audit.rest;
 
-public class AuditRequest {
+public class PredixAuditRequest {
 
     private int page;
     private int pageSize;
     private long startDate;
     private long endDate;
 
-    public AuditRequest(final int page, final int pageSize, final long startDate, final long endDate) {
+    public PredixAuditRequest(final int page, final int pageSize, final long startDate, final long endDate) {
         this.page = page;
         this.pageSize = pageSize;
         this.startDate = startDate;

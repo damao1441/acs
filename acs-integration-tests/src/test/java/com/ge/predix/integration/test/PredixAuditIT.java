@@ -13,6 +13,8 @@ import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.ge.predix.audit.rest.PredixAuditRequest;
+import com.ge.predix.audit.rest.PredixAuditResponse;
 import com.ge.predix.test.utils.ACSRestTemplateFactory;
 import com.ge.predix.test.utils.ZoneHelper;
 
@@ -21,7 +23,7 @@ public class PredixAuditIT extends AbstractTestNGSpringContextTests {
 
     @Value("${AUDIT_QUERY_URL}")
     private String auditQueryUrl;
-    
+
     @Value("${AUDIT_ZONE_ID}")
     private String auditZoneId;
 
@@ -39,10 +41,10 @@ public class PredixAuditIT extends AbstractTestNGSpringContextTests {
         long startTime = Instant.now().toEpochMilli();
         this.zoneHelper.createTestZone(this.acsRestTemplateFactory.getACSTemplateWithPolicyScope(), "predix-audit-zone",
                 true);
-        AuditRequest request = new AuditRequest(1, 10, startTime, Instant.now().toEpochMilli());
+        PredixAuditRequest request = new PredixAuditRequest(1, 10, startTime, Instant.now().toEpochMilli());
         HttpHeaders headers = new HttpHeaders();
         headers.add("Predix-Zone-Id", auditZoneId);
-        Thread.sleep(40000);
+        Thread.sleep(5000);
         ResponseEntity<PredixAuditResponse> response = this.auditRestTemplate.postForEntity(auditQueryUrl,
                 new HttpEntity<>(request, headers), PredixAuditResponse.class);
 

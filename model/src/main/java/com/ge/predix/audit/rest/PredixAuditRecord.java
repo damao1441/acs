@@ -1,6 +1,6 @@
-package com.ge.predix.integration.test;
+package com.ge.predix.audit.rest;
 
-public class AuditRecord {
+public class PredixAuditRecord {
 
     private String messageId;
     private String version;

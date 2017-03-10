@@ -42,6 +42,11 @@
     </dependencyManagement>
     <dependencies>
         <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-tcnative-boringssl-static</artifactId>
+            <version>1.1.33.Fork23</version>
+        </dependency>
+        <dependency>
             <groupId>com.ge.predix</groupId>
             <artifactId>security-dynamic-log-configurer</artifactId>
             <version>1.1.1</version>
@@ -170,10 +175,6 @@
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.tomcat.embed</groupId>
-                    <artifactId>tomcat-embed-el</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -524,6 +525,12 @@
                     <groupId>com.ge.predix.eventhub</groupId>
                     <artifactId>predix-event-hub-sdk</artifactId>
                     <version>1.1.6-SNAPSHOT</version>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>io.netty</groupId>
+                            <artifactId>netty-tcnative-boringssl-static</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
             </dependencies>
         </profile>

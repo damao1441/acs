@@ -384,7 +384,7 @@
                             <memory>1024</memory>
                             <buildpack>java-buildpack</buildpack>
                             <env>
-                                <SPRING_PROFILES_ACTIVE>integration,predix,cloud-redis,cloudDbConfig</SPRING_PROFILES_ACTIVE>
+                                <SPRING_PROFILES_ACTIVE>integration,predix,cloud-redis,cloudDbConfig,predixAudit</SPRING_PROFILES_ACTIVE>
                                 <AUDIT_SERVICE_NAME>${AUDIT_SERVICE_NAME}</AUDIT_SERVICE_NAME>
                                 <AUDIT_UAA_URL>${AUDIT_UAA_URL}</AUDIT_UAA_URL>
                                 <AUDIT_UAA_CLIENT_ID>${AUDIT_UAA_CLIENT_ID}</AUDIT_UAA_CLIENT_ID>
@@ -424,7 +424,7 @@
                                     <goal>push</goal>
                                 </goals>
                             </execution>
-                            <!-- <execution>
+                            <execution>
                                 <id>delete-services</id>
                                 <configuration>
                                     <services>
@@ -447,7 +447,7 @@
                                 <goals>
                                     <goal>delete</goal>
                                 </goals>
-                            </execution> -->
+                            </execution>
                         </executions>
                     </plugin>
                     <plugin>
@@ -552,7 +552,7 @@
                             <memory>1024</memory>
                             <buildpack>java-buildpack</buildpack>
                             <env>
-                                <SPRING_PROFILES_ACTIVE>integration,predix,cloud-redis,titan,cloudDbConfig</SPRING_PROFILES_ACTIVE>
+                                <SPRING_PROFILES_ACTIVE>integration,predix,cloud-redis,titan,cloudDbConfig,predixAudit</SPRING_PROFILES_ACTIVE>
                                 <TITAN_ENABLE_CASSANDRA>${TITAN_ENABLE_CASSANDRA}</TITAN_ENABLE_CASSANDRA>
                                 <TITAN_STORAGE_CASSANDRA_KEYSPACE>${TITAN_STORAGE_CASSANDRA_KEYSPACE}</TITAN_STORAGE_CASSANDRA_KEYSPACE>
                                 <TITAN_STORAGE_HOSTNAME>${TITAN_STORAGE_HOSTNAME}</TITAN_STORAGE_HOSTNAME>
@@ -762,7 +762,7 @@
             <build>
                 <plugins>
                     <!-- run UAA -->
-                    <!-- <plugin>
+                     <plugin>
                         <groupId>org.codehaus.cargo</groupId>
                         <artifactId>cargo-maven2-plugin</artifactId>
                         <version>1.4.19</version>
@@ -812,7 +812,7 @@
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin> -->
+                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-failsafe-plugin</artifactId>

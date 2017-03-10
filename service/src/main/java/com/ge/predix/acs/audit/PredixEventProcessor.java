@@ -12,7 +12,7 @@ import com.ge.predix.audit.sdk.exception.AuditException;
 import com.ge.predix.audit.sdk.message.AuditEventV2;
 
 @Component
-@Profile("predix")
+@Profile("predixAudit")
 public class PredixEventProcessor implements AuditEventProcessor {
 
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(PredixEventProcessor.class);
