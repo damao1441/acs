@@ -49,8 +49,8 @@
             <bean
                 class="org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails">
                 <property name="accessTokenUri" value="${AUDIT_UAA_URL}" />
-                <property name="clientId" value="AUDIT_UAA_CLIENT_ID" />
-                <property name="clientSecret" value="AUDIT_UAA_CLIENT_SECRET" />
+                <property name="clientId" value="${AUDIT_UAA_CLIENT_ID}" />
+                <property name="clientSecret" value="${AUDIT_UAA_CLIENT_SECRET}" />
             </bean>
         </constructor-arg>
         <property name="requestFactory" ref="httpRequestFactory"/>
