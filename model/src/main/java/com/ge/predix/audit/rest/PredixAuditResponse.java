@@ -13,8 +13,5 @@ public class PredixAuditResponse {
     public void setContent(final Set<PredixAuditRecord> content) {
         this.content = content;
     }
-    
+
 }
-
-
-

@@ -48,9 +48,9 @@
         <constructor-arg>
             <bean
                 class="org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails">
-                <property name="accessTokenUri" value="https://predix-uaa.run.aws-usw02-dev.ice.predix.io/oauth/token" />
-                <property name="clientId" value="acs-audit-client" />
-                <property name="clientSecret" value="acs-audit-secret" />
+                <property name="accessTokenUri" value="${AUDIT_UAA_URL}" />
+                <property name="clientId" value="AUDIT_UAA_CLIENT_ID" />
+                <property name="clientSecret" value="AUDIT_UAA_CLIENT_SECRET" />
             </bean>
         </constructor-arg>
         <property name="requestFactory" ref="httpRequestFactory"/>
