@@ -95,11 +95,11 @@ public class ZoneRepositoryTest extends AbstractTransactionalTestNGSpringContext
     }
 
     @Test
-    public void testEnvClientSecret() {
+    public void testGetClientSecret() {
         ZoneEntity zone = createZoneWithConnectorAndAssert();
 
         Assert.assertEquals(zone.getResourceAttributeConnector().getAttributeAdapterConnections().iterator().next()
-                .getUaaClientSecret(), null);
+                .getUaaClientSecret(), "my-secret");
     }
 
     private ZoneEntity createZoneWithConnectorAndAssert() {

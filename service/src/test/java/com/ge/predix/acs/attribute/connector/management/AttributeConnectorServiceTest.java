@@ -14,6 +14,7 @@ import org.testng.annotations.Test;
 import com.ge.predix.acs.attribute.connector.management.dao.AttributeAdapterConnectionEntity;
 import com.ge.predix.acs.attribute.connector.management.dao.AttributeConnectorEntity;
 import com.ge.predix.acs.attribute.connector.management.dao.ConnectorConverter;
+import com.ge.predix.acs.encryption.Encryptor;
 import com.ge.predix.acs.rest.AttributeAdapterConnection;
 import com.ge.predix.acs.rest.AttributeConnector;
 import com.ge.predix.acs.zone.management.dao.ZoneEntity;
@@ -28,12 +29,16 @@ public class AttributeConnectorServiceTest {
     private ZoneResolver zoneResolver;
     @Mock
     private ZoneRepository zoneRepository;
+    @Mock
+    private Encryptor encryptor;
 
     private final ConnectorConverter connectorConverter = new ConnectorConverter();
 
     @BeforeMethod
     public void setUp() {
         MockitoAnnotations.initMocks(this);
+        Mockito.doReturn("my-secret").when(this.encryptor).encrypt(Mockito.anyString());
+        Mockito.doReturn("my-secret").when(this.encryptor).decrypt(Mockito.anyString());
     }
 
     @Test

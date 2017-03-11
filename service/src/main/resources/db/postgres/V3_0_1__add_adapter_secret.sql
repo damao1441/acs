@@ -1,0 +1,1 @@
+ALTER TABLE attribute_adapter_connection ADD COLUMN adapter_client_secret varchar(128) NOT NULL;
