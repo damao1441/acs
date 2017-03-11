@@ -1,10 +1,14 @@
 package com.ge.predix.acs.attribute.connector.management;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.ge.predix.acs.attribute.connector.management.dao.AttributeConnectorEntity;
 import com.ge.predix.acs.attribute.connector.management.dao.ConnectorConverter;
+import com.ge.predix.acs.encryption.Encryptor;
 import com.ge.predix.acs.rest.AttributeAdapterConnection;
 import com.ge.predix.acs.rest.AttributeConnector;
 import com.ge.predix.acs.zone.management.dao.ZoneEntity;
@@ -13,12 +17,15 @@ import com.ge.predix.acs.zone.resolver.ZoneResolver;
 
 @Component
 public class AttributeConnectorServiceImpl implements AttributeConnectorService {
+
     private static final int CACHED_INTERVAL_THRESHOLD_MINUTES = 30;
 
     @Autowired
     private ZoneRepository zoneRepository;
     @Autowired
     private ZoneResolver zoneResolver;
+    @Autowired
+    private Encryptor encryptor;
 
     private final ConnectorConverter connectorConverter = new ConnectorConverter();
 
@@ -29,15 +36,22 @@ public class AttributeConnectorServiceImpl implements AttributeConnectorService 
 
         AttributeConnectorEntity connectorEntity = zoneEntity.getResourceAttributeConnector();
         boolean isCreated = null == connectorEntity;
-        
+
+        Set<AttributeAdapterConnection> attributeAdapterConnections = new HashSet<>();
+        connector.getAdapters().parallelStream().forEach(a -> {
+            a.setUaaClientSecret(this.encryptor.encrypt(a.getUaaClientSecret()));
+            attributeAdapterConnections.add(a);
+        });
+        connector.setAdapters(attributeAdapterConnections);
+
         connectorEntity = connectorConverter.toConnectorEntity(connector);
         zoneEntity.setResourceAttributeConnector(connectorEntity);
         try {
             this.zoneRepository.save(zoneEntity);
         } catch (Exception e) {
-            String message = String.format(
-                    "Unable to persist connector configuration for resource attributes for zone '%s'",
-                    zoneEntity.getName());
+            String message = String
+                    .format("Unable to persist connector configuration for resource attributes for zone '%s'",
+                            zoneEntity.getName());
             throw new AttributeConnectorException(message, e);
         }
         return isCreated;
@@ -46,7 +60,16 @@ public class AttributeConnectorServiceImpl implements AttributeConnectorService 
     @Override
     public AttributeConnector retrieveResourceConnector() {
         ZoneEntity zoneEntity = this.zoneResolver.getZoneEntityOrFail();
-        return this.connectorConverter.toConnector(zoneEntity.getResourceAttributeConnector());
+        AttributeConnector connector = this.connectorConverter.toConnector(zoneEntity.getResourceAttributeConnector());
+        if (null != connector) {
+            Set<AttributeAdapterConnection> attributeAdapterConnections = new HashSet<>();
+            connector.getAdapters().parallelStream().forEach(a -> {
+                a.setUaaClientSecret(this.encryptor.decrypt(a.getUaaClientSecret()));
+                attributeAdapterConnections.add(a);
+            });
+            connector.setAdapters(attributeAdapterConnections);
+        }
+        return connector;
     }
 
     @Override
@@ -61,9 +84,9 @@ public class AttributeConnectorServiceImpl implements AttributeConnectorService 
             this.zoneRepository.save(zoneEntity);
             isDeleted = true;
         } catch (Exception e) {
-            String message = String.format(
-                    "Unable to delete connector configuration for resource attributes for zone '%s'",
-                    zoneEntity.getName());
+            String message = String
+                    .format("Unable to delete connector configuration for resource attributes for zone '%s'",
+                            zoneEntity.getName());
             throw new AttributeConnectorException(message, e);
         }
         return isDeleted;
@@ -99,8 +122,6 @@ public class AttributeConnectorServiceImpl implements AttributeConnectorService 
             throw new AttributeConnectorException(
                     "Minimum value for maxCachedIntervalMinutes is " + CACHED_INTERVAL_THRESHOLD_MINUTES);
         }
-        connector.getAdapters().parallelStream().forEach(adapter -> {
-            validateAdapterEntityOrFail(adapter);
-        });
+        connector.getAdapters().parallelStream().forEach(this::validateAdapterEntityOrFail);
     }
 }

@@ -8,7 +8,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 
 @Entity
 @Table(name = "attribute_adapter_connection")
@@ -32,7 +31,7 @@ public class AttributeAdapterConnectionEntity {
     @Column(name = "adapter_client_id", nullable = false, length = 128)
     private String adapterClientId;
 
-    @Transient
+    @Column(name = "adapter_client_secret", nullable = false, length = 128)
     private String adapterClientSecret;
 
     public AttributeAdapterConnectionEntity(final AttributeConnectorEntity connector, final String adapterEndpoint,
@@ -64,8 +63,7 @@ public class AttributeAdapterConnectionEntity {
     }
 
     public String getUaaClientSecret() {
-        // This is a temporary measure until until encryption is implemented
-        return System.getenv("ADAPTER_CLIENT_SECRET");
+        return adapterClientSecret;
     }
 
 }
