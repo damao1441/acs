@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -23,9 +22,6 @@ import com.ge.predix.acs.zone.management.dao.ZoneRepository;
 @ContextConfiguration(classes = { InMemoryDataSourceConfig.class })
 @ActiveProfiles(resolver = TestActiveProfilesResolver.class)
 public class ZoneRepositoryTest extends AbstractTransactionalTestNGSpringContextTests {
-
-    @Value("ADAPTER_CLIENT_SECRET")
-    private String assetAdapterClientSecret;
 
     @Autowired
     private ZoneRepository zoneRepository;
