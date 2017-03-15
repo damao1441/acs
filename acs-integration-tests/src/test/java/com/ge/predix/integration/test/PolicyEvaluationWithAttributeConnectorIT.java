@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,7 @@ import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.ge.predix.acs.commons.web.AcsApiUriTemplates;
@@ -61,12 +63,6 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
     @Value("${ZONE1_NAME:testzone1}")
     private String acsZone1Name;
 
-    @Value("${ZONE2_NAME:testzone2}")
-    private String acsZone2Name;
-
-    @Value("${ZONE3_NAME:testzone3}")
-    private String acsZone3Name;
-
     @Value("${ACS_UAA_URL}")
     private String acsUaaUrl;
 
@@ -99,17 +95,19 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
     }
 
     private void configureAttributeConnector(final boolean isActive, final int maxCachedIntervalMinutes,
-            final AttributeAdapterConnection... adapters) throws IOException {
+            final List<AttributeAdapterConnection> adapters) throws IOException {
         AttributeConnector attributeConnector = new AttributeConnector();
         attributeConnector.setIsActive(isActive);
         attributeConnector.setMaxCachedIntervalMinutes(maxCachedIntervalMinutes);
-        attributeConnector.setAdapters(new HashSet<>(Arrays.asList(adapters)));
+        attributeConnector.setAdapters(new HashSet<>(adapters));
         this.resourceAttributeConnectorUrl = URI.create(this.zoneHelper.getAcsBaseURL() + AcsApiUriTemplates.V1
                 + AcsApiUriTemplates.RESOURCE_CONNECTOR_URL);
         HttpHeaders httpHeaders = this.getHeadersWithZoneId();
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
         this.acsAdminRestTemplate.exchange(this.resourceAttributeConnectorUrl, HttpMethod.PUT,
                 new HttpEntity<>(attributeConnector, httpHeaders), AttributeConnector.class);
+
+        // TODO: Call an Asset-specific OAuth2RestTemplate to make point REST calls to seed mock data for these tests
     }
 
     private void setupPredixAcs() throws IOException {
@@ -122,7 +120,7 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
     private void setupPublicAcs() throws IOException {
         UaaTestUtil uaaTestUtil = new UaaTestUtil(this.acsRestTemplateFactory.getOAuth2RestTemplateForUaaAdmin(),
                 this.acsUaaUrl);
-        uaaTestUtil.setup(Arrays.asList(this.acsZone1Name, this.acsZone2Name, this.acsZone3Name));
+        uaaTestUtil.setup(Collections.singletonList(this.acsZone1Name));
         this.acsAdminRestTemplate = this.acsRestTemplateFactory.getOAuth2RestTemplateForAcsAdmin();
         this.registerWithZac = false;
     }
@@ -136,14 +134,6 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
         }
 
         this.zone = this.zoneHelper.createTestZone(this.acsAdminRestTemplate, this.acsZone1Name, this.registerWithZac);
-
-        this.configureAttributeConnector(this.adapterIsActive, this.adapterMaxCachedIntervalMinutes,
-                new AttributeAdapterConnection(this.adapterEndpoint, this.adapterUaaTokenUrl, this.adapterUaaClientId,
-                        this.adapterUaaClientSecret));
-
-        // TODO: Currently data is pre-seeded by a script in the acs-asset-adapter Git repo. At some point, we might
-        // want to instead seed the data to the underlying service encapsulated by the resource- or subject-related
-        // adapter here.
     }
 
     private void deconfigureAttributeConnector() throws IOException {
@@ -155,18 +145,21 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
 
     @AfterClass
     void afterClass() throws IOException {
-        this.deconfigureAttributeConnector();
         this.zoneHelper.deleteZone(this.acsAdminRestTemplate, this.acsZone1Name, this.registerWithZac);
     }
 
-    @Test
-    public void testPolicyEvaluationWithActiveAdapters() throws Exception {
+    @Test(dataProvider = "adapterStatusesAndResultingEffects")
+    public void testPolicyEvaluationWithAdapters(final boolean adapterActive, final Effect effect) throws Exception {
         HttpHeaders httpHeaders = this.getHeadersWithZoneId();
         String testPolicyName = this.policyHelper
                 .setTestPolicy(this.acsAdminRestTemplate, httpHeaders, this.zoneHelper.getAcsBaseURL(),
                         "src/test/resources/policy-set-with-one-policy-using-resource-attributes-from-asset-adapter"
                                 + ".json");
+
         try {
+            this.configureAttributeConnector(adapterActive, this.adapterMaxCachedIntervalMinutes, Collections
+                    .singletonList(new AttributeAdapterConnection(this.adapterEndpoint, this.adapterUaaTokenUrl,
+                            this.adapterUaaClientId, this.adapterUaaClientSecret)));
             PolicyEvaluationRequestV1 policyEvaluationRequest = this.policyHelper
                     .createMultiplePolicySetsEvalRequest("", "", IDENTIFIER, null,
                             new LinkedHashSet<>(Collections.singletonList(testPolicyName)));
@@ -175,16 +168,17 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
                             new HttpEntity<>(policyEvaluationRequest, httpHeaders), PolicyEvaluationResult.class);
             Assert.assertEquals(policyEvaluationResponse.getStatusCode(), HttpStatus.OK);
             PolicyEvaluationResult policyEvaluationResult = policyEvaluationResponse.getBody();
-            Assert.assertEquals(policyEvaluationResult.getEffect(), Effect.PERMIT);
+            Assert.assertEquals(policyEvaluationResult.getEffect(), effect);
         } finally {
             this.policyHelper
                     .deletePolicySet(this.acsAdminRestTemplate, this.zoneHelper.getAcsBaseURL(), testPolicyName,
                             httpHeaders);
+            this.deconfigureAttributeConnector();
         }
     }
 
-    @Test
-    public void testPolicyEvaluationWithInactiveAdapters() throws Exception {
-        // TODO: Flesh this out when isActive is added to AttributeConnectorEntity
+    @DataProvider
+    private Object[][] adapterStatusesAndResultingEffects() {
+        return new Object[][] { { true, Effect.PERMIT }, { false, Effect.NOT_APPLICABLE } };
     }
 }

@@ -21,6 +21,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.ge.predix.acs.attribute.cache.AttributeCache;
 import com.ge.predix.acs.attribute.connector.management.dao.AttributeAdapterConnectionEntity;
+import com.ge.predix.acs.encryption.Encryptor;
 import com.ge.predix.acs.model.Attribute;
 import com.ge.predix.acs.rest.attribute.adapter.AttributesResponse;
 import com.ge.predix.acs.zone.management.dao.ZoneEntity;
@@ -76,7 +77,7 @@ public abstract class ExternalAttributeReader implements AttributeReader {
             final AttributeAdapterConnectionEntity attributeAdapterConnectionEntity) {
         String uaaTokenUrl = attributeAdapterConnectionEntity.getUaaTokenUrl();
         String uaaClientId = attributeAdapterConnectionEntity.getUaaClientId();
-        String uaaClientSecret = attributeAdapterConnectionEntity.getUaaClientSecret();
+        String uaaClientSecret = Encryptor.getInstance().decrypt(attributeAdapterConnectionEntity.getUaaClientSecret());
 
         Integer key = new HashCodeBuilder().append(uaaTokenUrl).append(uaaClientId).append(uaaClientSecret)
                 .toHashCode();
