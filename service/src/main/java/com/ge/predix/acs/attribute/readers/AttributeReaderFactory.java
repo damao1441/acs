@@ -36,8 +36,7 @@ public class AttributeReaderFactory {
 
     public ResourceAttributeReader getResourceAttributeReader() {
         ZoneEntity zone = this.zoneResolver.getZoneEntityOrFail();
-        // TODO: Uncomment the condition below when isActive is added to AttributeConnectorEntity
-        if (zone.getResourceAttributeConnector() == null /* || !zone.getResourceAttributeConnector().getIsActive() */) {
+        if (zone.getResourceAttributeConnector() == null || !zone.getResourceAttributeConnector().isActive()) {
             return this.privilegeServiceResourceAttributeReader;
         }
 
@@ -56,8 +55,7 @@ public class AttributeReaderFactory {
 
     public SubjectAttributeReader getSubjectAttributeReader() {
         ZoneEntity zone = this.zoneResolver.getZoneEntityOrFail();
-        // TODO: Uncomment the condition below when isActive is added to AttributeConnectorEntity
-        if (zone.getSubjectAttributeConnector() == null /* || !zone.getSubjectAttributeConnector().getIsActive() */) {
+        if (zone.getSubjectAttributeConnector() == null || !zone.getSubjectAttributeConnector().isActive()) {
             return this.privilegeServiceSubjectAttributeReader;
         }
 
