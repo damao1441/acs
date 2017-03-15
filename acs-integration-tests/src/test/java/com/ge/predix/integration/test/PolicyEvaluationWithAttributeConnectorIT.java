@@ -8,6 +8,8 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -17,7 +19,9 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
@@ -39,6 +43,9 @@ import com.ge.predix.test.utils.UaaTestUtil;
 import com.ge.predix.test.utils.ZacTestUtil;
 import com.ge.predix.test.utils.ZoneHelper;
 
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
 @ContextConfiguration("classpath:integration-test-spring-context.xml")
 public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpringContextTests {
 
@@ -51,20 +58,35 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
     @Value("${ADAPTER_ENDPOINT}")
     private String adapterEndpoint;
 
-    @Value("${ADAPTER_UAA_TOKEN_URL}")
-    private String adapterUaaTokenUrl;
-
-    @Value("${ADAPTER_UAA_CLIENT_ID}")
-    private String adapterUaaClientId;
-
-    @Value("${ADAPTER_UAA_CLIENT_SECRET}")
-    private String adapterUaaClientSecret;
-
     @Value("${ZONE1_NAME:testzone1}")
     private String acsZone1Name;
 
     @Value("${ACS_UAA_URL}")
     private String acsUaaUrl;
+
+    @Value("${ASSET_TOKEN_URL}")
+    private String assetTokenUrl;
+
+    @Value("${ASSET_CLIENT_ID}")
+    private String assetClientId;
+
+    @Value("${ASSET_CLIENT_SECRET}")
+    private String assetClientSecret;
+
+    @Value("${ASSET_ZONE_ID}")
+    private String assetZoneId;
+
+    @Value("${ASSET_URL}")
+    private String assetUrl;
+
+    @Value("${ADAPTER_UAA_TOKEN_URL:${ASSET_TOKEN_URL}}")
+    private String adapterUaaTokenUrl;
+
+    @Value("${ADAPTER_UAA_CLIENT_ID:${ASSET_CLIENT_ID}}")
+    private String adapterUaaClientId;
+
+    @Value("${ADAPTER_UAA_CLIENT_SECRET:${ASSET_CLIENT_SECRET}}")
+    private String adapterUaaClientSecret;
 
     @Autowired
     private Environment environment;
@@ -82,16 +104,61 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
     private PolicyHelper policyHelper;
 
     private static final String IDENTIFIER = "part/03f95db1-4255-4265-a509-f7bca3e1fee4";
+    private static final String ASSET_URI_PATH_SEGMENT = '/' + IDENTIFIER;
 
     private Zone zone;
     private OAuth2RestTemplate acsAdminRestTemplate;
+    private OAuth2RestTemplate assetRestTemplate;
     private boolean registerWithZac;
     private URI resourceAttributeConnectorUrl;
 
-    private HttpHeaders getHeadersWithZoneId() throws IOException {
+    private HttpHeaders getHeadersWithAcsZoneId() throws IOException {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.set(PolicyHelper.PREDIX_ZONE_ID, this.zone.getSubdomain());
         return httpHeaders;
+    }
+
+    private HttpHeaders getHeadersWithAssetZoneId() throws IOException {
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set(PolicyHelper.PREDIX_ZONE_ID, this.assetZoneId);
+        return httpHeaders;
+    }
+
+    private void createAssetRestTemplate() {
+        ClientCredentialsResourceDetails clientCredentials = new ClientCredentialsResourceDetails();
+        clientCredentials.setAccessTokenUri(this.assetTokenUrl);
+        clientCredentials.setClientId(this.assetClientId);
+        clientCredentials.setClientSecret(this.assetClientSecret);
+        this.assetRestTemplate = new OAuth2RestTemplate(clientCredentials);
+
+        CloseableHttpClient httpClient = HttpClientBuilder.create().useSystemProperties().build();
+        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+        this.assetRestTemplate.setRequestFactory(requestFactory);
+    }
+
+    private void configureMockAssetData() throws IOException {
+        this.createAssetRestTemplate();
+
+        HttpHeaders httpHeaders = this.getHeadersWithAssetZoneId();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        JSONObject part = new JSONObject();
+        part.put("id", "03f95db1-4255-4265-a509-f7bca3e1fee4");
+        part.put("collection", "part");
+        part.put("partModel", "/partmodels/9a92831d-42f1-4f9e-86bf-4c0914f481e4");
+        part.put("structureModel", "/structureModels/8c787978-bd8b-417a-b759-f63a8a6d43ee");
+        part.put("serialNumber", "775277328");
+        part.put("parent", "/part/01af94ed-5425-44e4-9f6e-2a58cba7b559");
+        part.put("aircraftPart", "/aircraftPart/13a71359-db68-4602-aac5-a8fa401c3194");
+        part.put("aircraftPartModel", "/aircraftPartModels/1dc6a36d-a24e-4fec-a181-f576c95a8104");
+        part.put("uri", ASSET_URI_PATH_SEGMENT);
+
+        JSONArray partArray = new JSONArray();
+        partArray.add(part);
+
+        ResponseEntity<String> response = this.assetRestTemplate
+                .exchange(this.assetUrl + "/part", HttpMethod.POST, new HttpEntity<>(partArray.toString(), httpHeaders),
+                        String.class);
     }
 
     private void configureAttributeConnector(final boolean isActive, final int maxCachedIntervalMinutes,
@@ -102,12 +169,10 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
         attributeConnector.setAdapters(new HashSet<>(adapters));
         this.resourceAttributeConnectorUrl = URI.create(this.zoneHelper.getAcsBaseURL() + AcsApiUriTemplates.V1
                 + AcsApiUriTemplates.RESOURCE_CONNECTOR_URL);
-        HttpHeaders httpHeaders = this.getHeadersWithZoneId();
+        HttpHeaders httpHeaders = this.getHeadersWithAcsZoneId();
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
         this.acsAdminRestTemplate.exchange(this.resourceAttributeConnectorUrl, HttpMethod.PUT,
                 new HttpEntity<>(attributeConnector, httpHeaders), AttributeConnector.class);
-
-        // TODO: Call an Asset-specific OAuth2RestTemplate to make point REST calls to seed mock data for these tests
     }
 
     private void setupPredixAcs() throws IOException {
@@ -134,10 +199,20 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
         }
 
         this.zone = this.zoneHelper.createTestZone(this.acsAdminRestTemplate, this.acsZone1Name, this.registerWithZac);
+        this.configureMockAssetData();
+    }
+
+    private void deconfigureMockAssetData() throws IOException {
+        HttpHeaders httpHeaders = this.getHeadersWithAssetZoneId();
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        this.assetRestTemplate
+                .exchange(this.assetUrl + ASSET_URI_PATH_SEGMENT, HttpMethod.DELETE, new HttpEntity<>(httpHeaders),
+                        Void.class);
     }
 
     private void deconfigureAttributeConnector() throws IOException {
-        HttpHeaders httpHeaders = this.getHeadersWithZoneId();
+        HttpHeaders httpHeaders = this.getHeadersWithAcsZoneId();
         this.acsAdminRestTemplate
                 .exchange(this.resourceAttributeConnectorUrl, HttpMethod.DELETE, new HttpEntity<>(httpHeaders),
                         Void.class);
@@ -145,12 +220,13 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
 
     @AfterClass
     void afterClass() throws IOException {
+        this.deconfigureMockAssetData();
         this.zoneHelper.deleteZone(this.acsAdminRestTemplate, this.acsZone1Name, this.registerWithZac);
     }
 
     @Test(dataProvider = "adapterStatusesAndResultingEffects")
     public void testPolicyEvaluationWithAdapters(final boolean adapterActive, final Effect effect) throws Exception {
-        HttpHeaders httpHeaders = this.getHeadersWithZoneId();
+        HttpHeaders httpHeaders = this.getHeadersWithAcsZoneId();
         String testPolicyName = this.policyHelper
                 .setTestPolicy(this.acsAdminRestTemplate, httpHeaders, this.zoneHelper.getAcsBaseURL(),
                         "src/test/resources/policy-set-with-one-policy-using-resource-attributes-from-asset-adapter"
