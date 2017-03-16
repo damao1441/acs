@@ -177,10 +177,10 @@ public class ZoneEntity {
     }
 
     public boolean isResourceAttributeConnectorConfigured() {
-        return this.getResourceAttributeConnector() != null && this.getResourceAttributeConnector().isActive();
+        return this.getResourceAttributeConnector() != null && this.getResourceAttributeConnector().getIsActive();
     }
 
     public boolean isSubjectAttributeConnectorConfigured() {
-        return this.getSubjectAttributeConnector() != null && this.getSubjectAttributeConnector().isActive();
+        return this.getSubjectAttributeConnector() != null && this.getSubjectAttributeConnector().getIsActive();
     }
 }

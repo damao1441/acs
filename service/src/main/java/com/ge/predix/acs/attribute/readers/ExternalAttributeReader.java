@@ -20,8 +20,8 @@ import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.ge.predix.acs.attribute.cache.AttributeCache;
-import com.ge.predix.acs.attribute.connector.management.dao.AttributeAdapterConnectionEntity;
 import com.ge.predix.acs.model.Attribute;
+import com.ge.predix.acs.rest.AttributeAdapterConnection;
 import com.ge.predix.acs.rest.attribute.adapter.AttributesResponse;
 import com.ge.predix.acs.zone.management.dao.ZoneEntity;
 
@@ -73,7 +73,7 @@ public abstract class ExternalAttributeReader implements AttributeReader {
     }
 
     private OAuth2RestTemplate getAdapterOauth2RestTemplate(
-            final AttributeAdapterConnectionEntity attributeAdapterConnectionEntity) {
+            final AttributeAdapterConnection attributeAdapterConnectionEntity) {
         String uaaTokenUrl = attributeAdapterConnectionEntity.getUaaTokenUrl();
         String uaaClientId = attributeAdapterConnectionEntity.getUaaClientId();
         String uaaClientSecret = attributeAdapterConnectionEntity.getUaaClientSecret();
@@ -98,13 +98,13 @@ public abstract class ExternalAttributeReader implements AttributeReader {
     @SuppressWarnings("squid:RedundantThrowsDeclarationCheck")
     Set<Attribute> getAttributesFromAdapters(final String identifier) throws AttributeRetrievalException {
         HttpHeaders headers = new HttpHeaders();
-        headers.add(PREDIX_ZONE_ID, this.getZone().getName());
+        headers.add(PREDIX_ZONE_ID, this.zone.getName());
 
-        Set<AttributeAdapterConnectionEntity> attributeAdapterConnectionEntities = this
+        Set<AttributeAdapterConnection> attributeAdapterConnectionEntities = this
                 .getAttributeAdapterConnections();
         Set<Attribute> attributes = new HashSet<>();
 
-        for (AttributeAdapterConnectionEntity attributeAdapterConnectionEntity : attributeAdapterConnectionEntities) {
+        for (AttributeAdapterConnection attributeAdapterConnectionEntity : attributeAdapterConnectionEntities) {
             OAuth2RestTemplate adapterRestTemplate = this
                     .getAdapterOauth2RestTemplate(attributeAdapterConnectionEntity);
             HttpEntity<String> adapterEntity = new HttpEntity<>(headers);
@@ -129,5 +129,5 @@ public abstract class ExternalAttributeReader implements AttributeReader {
         return attributes;
     }
 
-    abstract Set<AttributeAdapterConnectionEntity> getAttributeAdapterConnections();
+    abstract Set<AttributeAdapterConnection> getAttributeAdapterConnections();
 }

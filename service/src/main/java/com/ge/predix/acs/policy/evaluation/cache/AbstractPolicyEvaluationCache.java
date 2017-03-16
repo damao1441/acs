@@ -299,10 +299,10 @@ public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationC
         int minutesRequestCachedFor = Minutes.minutesBetween(policyEvalTimestampUTC, new DateTime()).getMinutes();
         boolean isResourceConnectorCachedRequestInvalid =
                 isResourceAttributeConnectorConfigured && minutesRequestCachedFor >= zoneEntity
-                        .getResourceAttributeConnector().getCachedIntervalMinutes();
+                        .getResourceAttributeConnector().getMaxCachedIntervalMinutes();
         boolean isSubjectConnectorCachedRequestInvalid =
                 isSubjectAttributeConnectorConfigured && minutesRequestCachedFor >= zoneEntity
-                        .getSubjectAttributeConnector().getCachedIntervalMinutes();
+                        .getSubjectAttributeConnector().getMaxCachedIntervalMinutes();
         return isResourceConnectorCachedRequestInvalid || isSubjectConnectorCachedRequestInvalid;
     }
 
