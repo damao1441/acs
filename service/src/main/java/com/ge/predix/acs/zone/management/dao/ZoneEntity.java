@@ -170,4 +170,12 @@ public class ZoneEntity {
     public void setSubjectAttributeConnector(final AttributeConnectorEntity subjectAttributeConnector) {
         this.subjectAttributeConnector = subjectAttributeConnector;
     }
+
+    public boolean isResourceAttributeConnectorConfigured() {
+        return this.getResourceAttributeConnector() != null && this.getResourceAttributeConnector().isActive();
+    }
+
+    public boolean isSubjectAttributeConnectorConfigured() {
+        return this.getSubjectAttributeConnector() != null && this.getSubjectAttributeConnector().isActive();
+    }
 }

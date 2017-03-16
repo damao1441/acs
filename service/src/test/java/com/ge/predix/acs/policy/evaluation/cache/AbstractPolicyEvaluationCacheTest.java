@@ -18,7 +18,6 @@ package com.ge.predix.acs.policy.evaluation.cache;
 
 import static com.ge.predix.acs.testutils.XFiles.AGENT_MULDER;
 import static com.ge.predix.acs.testutils.XFiles.XFILES_ID;
-
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
@@ -29,7 +28,10 @@ import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.ge.predix.acs.model.Effect;
@@ -38,6 +40,7 @@ import com.ge.predix.acs.privilege.management.dao.SubjectEntity;
 import com.ge.predix.acs.rest.PolicyEvaluationRequestV1;
 import com.ge.predix.acs.rest.PolicyEvaluationResult;
 import com.ge.predix.acs.zone.management.dao.ZoneEntity;
+import com.ge.predix.acs.zone.resolver.ZoneResolver;
 
 public class AbstractPolicyEvaluationCacheTest {
 
@@ -52,6 +55,13 @@ public class AbstractPolicyEvaluationCacheTest {
             .collect(Collectors.toCollection(LinkedHashSet::new));
 
     private final InMemoryPolicyEvaluationCache cache = new InMemoryPolicyEvaluationCache();
+
+    @BeforeClass
+    void beforeClass() {
+        ZoneResolver zoneResolver = Mockito.mock(ZoneResolver.class);
+        Mockito.when(zoneResolver.getZoneEntityOrFail()).thenReturn(Mockito.mock(ZoneEntity.class));
+        ReflectionTestUtils.setField(this.cache, "zoneResolver", zoneResolver);
+    }
 
     @AfterMethod
     public void cleanupTest() {

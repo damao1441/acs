@@ -1,9 +1,9 @@
 package com.ge.predix.acs.policy.evaluation.cache;
 
-import static com.ge.predix.acs.testutils.XFiles.AGENT_MULDER;
-import static com.ge.predix.acs.testutils.XFiles.XFILES_ID;
 import static com.ge.predix.acs.policy.evaluation.cache.AbstractPolicyEvaluationCacheTest.ZONE_NAME;
 import static com.ge.predix.acs.policy.evaluation.cache.AbstractPolicyEvaluationCacheTest.mockPermitResult;
+import static com.ge.predix.acs.testutils.XFiles.AGENT_MULDER;
+import static com.ge.predix.acs.testutils.XFiles.XFILES_ID;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.fail;
@@ -12,6 +12,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Properties;
 
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
 import org.springframework.context.annotation.Bean;
@@ -30,23 +34,31 @@ import com.ge.predix.acs.privilege.management.dao.ResourceEntity;
 import com.ge.predix.acs.privilege.management.dao.SubjectEntity;
 import com.ge.predix.acs.rest.PolicyEvaluationRequestV1;
 import com.ge.predix.acs.rest.PolicyEvaluationResult;
+import com.ge.predix.acs.zone.management.dao.ZoneEntity;
+import com.ge.predix.acs.zone.resolver.SpringSecurityZoneResolver;
+import com.ge.predix.acs.zone.resolver.ZoneResolver;
 
 @ActiveProfiles(profiles = { "simple-cache" })
 @ContextConfiguration(
         classes = { DefaultPolicyEvaluationCacheCircuitBreakerTest.Config.class,
-                HystrixPolicyEvaluationCacheCircuitBreaker.class })
+                HystrixPolicyEvaluationCacheCircuitBreaker.class, SpringSecurityZoneResolver.class })
 public class DefaultPolicyEvaluationCacheCircuitBreakerTest extends AbstractTestNGSpringContextTests {
     public static final String ACTION_GET = "GET";
 
     @Autowired
     private PolicyEvaluationCacheCircuitBreaker policyEvaluationCacheCircuitBreaker;
     @Autowired
+    @InjectMocks
     private InMemoryPolicyEvaluationCache cache;
+    @Mock
+    private ZoneResolver zoneResolver;
     private final MockBrokenPolicyEvaluationCache brokenCache = new MockBrokenPolicyEvaluationCache();
 
     @BeforeClass
     public void setup() {
         this.policyEvaluationCacheCircuitBreaker.setCachingEnabled(true);
+        MockitoAnnotations.initMocks(this);
+        Mockito.when(zoneResolver.getZoneEntityOrFail()).thenReturn(Mockito.mock(ZoneEntity.class));
     }
 
     @BeforeMethod
