@@ -175,4 +175,12 @@ public class ZoneEntity {
     public void setSubjectAttributeConnector(final AttributeConnector connector) throws JsonProcessingException {
         this.subjectAttributeConnector = OBJECT_MAPPER.writeValueAsString(connector);
     }
+
+    public boolean isResourceAttributeConnectorConfigured() {
+        return this.getResourceAttributeConnector() != null && this.getResourceAttributeConnector().isActive();
+    }
+
+    public boolean isSubjectAttributeConnectorConfigured() {
+        return this.getSubjectAttributeConnector() != null && this.getSubjectAttributeConnector().isActive();
+    }
 }

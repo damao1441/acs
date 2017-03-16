@@ -16,16 +16,6 @@
 
 package com.ge.predix.acs.policy.evaluation.cache;
 
-import com.ge.predix.acs.privilege.management.dao.ResourceEntity;
-import com.ge.predix.acs.privilege.management.dao.SubjectEntity;
-import com.ge.predix.acs.rest.PolicyEvaluationResult;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,8 +27,27 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.codehaus.jackson.map.ObjectMapper;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Minutes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import com.ge.predix.acs.privilege.management.dao.ResourceEntity;
+import com.ge.predix.acs.privilege.management.dao.SubjectEntity;
+import com.ge.predix.acs.rest.PolicyEvaluationResult;
+import com.ge.predix.acs.zone.management.dao.ZoneEntity;
+import com.ge.predix.acs.zone.resolver.ZoneResolver;
+
 @Component
 public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationCache {
+
+    @Autowired
+    private ZoneResolver zoneResolver;
+
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPolicyEvaluationCache.class);
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -234,7 +243,7 @@ public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationC
         });
         multiSet(map);
     }
-    
+
     private void logSetSubjectTimestampDebugMessage(final String key, final String timestamp, final String subjectId) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(String.format("Setting timestamp for subject '%s'; key: '%s', value: '%s' ", subjectId, key,
@@ -250,6 +259,21 @@ public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationC
     }
 
     private boolean isCachedRequestInvalid(final List<String> values, final DateTime policyEvalTimestamp) {
+        DateTime policyEvalTimestampUTC = policyEvalTimestamp.withZone(DateTimeZone.UTC);
+
+        ZoneEntity zoneEntity = this.zoneResolver.getZoneEntityOrFail();
+        boolean isResourceAttributeConnectorConfigured = zoneEntity.isResourceAttributeConnectorConfigured();
+        boolean isSubjectAttributeConnectorConfigured = zoneEntity.isSubjectAttributeConnectorConfigured();
+        if (!isResourceAttributeConnectorConfigured && !isSubjectAttributeConnectorConfigured) {
+            return isPrivilegeServiceCachedRequestInvalid(values, policyEvalTimestampUTC);
+        }
+
+        return isConnectorCachedRequestInvalid(policyEvalTimestampUTC, isResourceAttributeConnectorConfigured,
+                isSubjectAttributeConnectorConfigured, zoneEntity);
+    }
+
+    private boolean isPrivilegeServiceCachedRequestInvalid(final List<String> values,
+            final DateTime policyEvalTimestampUTC) {
         for (int i = 0; i < values.size() - 1; i++) {
             if (null == values.get(i)) {
                 continue;
@@ -262,12 +286,24 @@ public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationC
                 throw new IllegalStateException("Failed to read timestamp from JSON.", e);
             }
 
-            DateTime policyEvalTimestampUTC = policyEvalTimestamp.withZone(DateTimeZone.UTC);
             if (invalidationTimestampUTC.isAfter(policyEvalTimestampUTC)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private boolean isConnectorCachedRequestInvalid(final DateTime policyEvalTimestampUTC,
+            final boolean isResourceAttributeConnectorConfigured, final boolean isSubjectAttributeConnectorConfigured,
+            final ZoneEntity zoneEntity) {
+        int minutesRequestCachedFor = Minutes.minutesBetween(policyEvalTimestampUTC, new DateTime()).getMinutes();
+        boolean isResourceConnectorCachedRequestInvalid =
+                isResourceAttributeConnectorConfigured && minutesRequestCachedFor >= zoneEntity
+                        .getResourceAttributeConnector().getCachedIntervalMinutes();
+        boolean isSubjectConnectorCachedRequestInvalid =
+                isSubjectAttributeConnectorConfigured && minutesRequestCachedFor >= zoneEntity
+                        .getSubjectAttributeConnector().getCachedIntervalMinutes();
+        return isResourceConnectorCachedRequestInvalid || isSubjectConnectorCachedRequestInvalid;
     }
 
     static String policySetKey(final String zoneId, final String policySetId) {
