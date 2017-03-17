@@ -229,8 +229,8 @@ public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationC
 
     @Override
     public void resetForSubjects(final String zoneId, final List<SubjectEntity> subjectEntities) {
-        multisetForSubjects(zoneId, subjectEntities.stream().map(subject -> subject.getSubjectIdentifier())
-                .collect(Collectors.toList()));
+        multisetForSubjects(zoneId,
+                subjectEntities.stream().map(subject -> subject.getSubjectIdentifier()).collect(Collectors.toList()));
     }
 
     private void multisetForSubjects(final String zoneId, final List<String> subjectIds) {
@@ -260,19 +260,16 @@ public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationC
 
     private boolean isCachedRequestInvalid(final List<String> values, final DateTime policyEvalTimestamp) {
         DateTime policyEvalTimestampUTC = policyEvalTimestamp.withZone(DateTimeZone.UTC);
+        ZoneEntity zone = this.zoneResolver.getZoneEntityOrFail();
 
-        ZoneEntity zoneEntity = this.zoneResolver.getZoneEntityOrFail();
-        boolean isResourceAttributeConnectorConfigured = zoneEntity.isResourceAttributeConnectorConfigured();
-        boolean isSubjectAttributeConnectorConfigured = zoneEntity.isSubjectAttributeConnectorConfigured();
-        if (!isResourceAttributeConnectorConfigured && !isSubjectAttributeConnectorConfigured) {
-            return isPrivilegeServiceCachedRequestInvalid(values, policyEvalTimestampUTC);
+        if (zone.isResourceAttributeConnectorConfigured() || zone.isSubjectAttributeConnectorConfigured()) {
+            return haveConnectorCacheIntervalsLapsed(zone, policyEvalTimestampUTC);
+        } else {
+            return havePrivilegeServiceAttributesChanged(values, policyEvalTimestampUTC);
         }
-
-        return isConnectorCachedRequestInvalid(policyEvalTimestampUTC, isResourceAttributeConnectorConfigured,
-                isSubjectAttributeConnectorConfigured, zoneEntity);
     }
 
-    private boolean isPrivilegeServiceCachedRequestInvalid(final List<String> values,
+    private boolean havePrivilegeServiceAttributesChanged(final List<String> values,
             final DateTime policyEvalTimestampUTC) {
         for (int i = 0; i < values.size() - 1; i++) {
             if (null == values.get(i)) {
@@ -293,17 +290,23 @@ public abstract class AbstractPolicyEvaluationCache implements PolicyEvaluationC
         return false;
     }
 
-    private boolean isConnectorCachedRequestInvalid(final DateTime policyEvalTimestampUTC,
-            final boolean isResourceAttributeConnectorConfigured, final boolean isSubjectAttributeConnectorConfigured,
-            final ZoneEntity zoneEntity) {
-        int minutesRequestCachedFor = Minutes.minutesBetween(policyEvalTimestampUTC, new DateTime()).getMinutes();
-        boolean isResourceConnectorCachedRequestInvalid =
-                isResourceAttributeConnectorConfigured && minutesRequestCachedFor >= zoneEntity
-                        .getResourceAttributeConnector().getMaxCachedIntervalMinutes();
-        boolean isSubjectConnectorCachedRequestInvalid =
-                isSubjectAttributeConnectorConfigured && minutesRequestCachedFor >= zoneEntity
-                        .getSubjectAttributeConnector().getMaxCachedIntervalMinutes();
-        return isResourceConnectorCachedRequestInvalid || isSubjectConnectorCachedRequestInvalid;
+    private boolean haveConnectorCacheIntervalsLapsed(final ZoneEntity zone, final DateTime policyEvalTimestampUTC) {
+        DateTime nowUTC = new DateTime().withZone(DateTimeZone.UTC);
+
+        try {
+            int decisionAgeMinutes = Minutes.minutesBetween(policyEvalTimestampUTC, nowUTC).getMinutes();
+
+            boolean hasResourceConnectorIntervalLapsed = zone.isResourceAttributeConnectorConfigured()
+                    && decisionAgeMinutes >= zone.getResourceAttributeConnector().getMaxCachedIntervalMinutes();
+
+            boolean hasSubjectConnectorIntervalLapsed = zone.isSubjectAttributeConnectorConfigured()
+                    && decisionAgeMinutes >= zone.getSubjectAttributeConnector().getMaxCachedIntervalMinutes();
+
+                    return hasResourceConnectorIntervalLapsed || hasSubjectConnectorIntervalLapsed;
+        } catch (Exception e) { 
+            // NOT FOR MERGE - waiting for ZoneEntity changes from encryption branch
+            throw new IllegalStateException();
+        }
     }
 
     static String policySetKey(final String zoneId, final String policySetId) {
