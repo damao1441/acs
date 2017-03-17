@@ -2,9 +2,12 @@ package com.ge.predix.acs.rest;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class AttributeConnector {
     private boolean isActive;
     
+    @JsonProperty(defaultValue="480", required=false)
     private int maxCachedIntervalMinutes;
     
     private Set<AttributeAdapterConnection> adapters;

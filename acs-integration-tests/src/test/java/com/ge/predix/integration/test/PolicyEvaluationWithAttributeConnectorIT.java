@@ -5,7 +5,6 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -30,7 +29,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import com.ge.predix.acs.commons.web.AcsApiUriTemplates;
 import com.ge.predix.acs.model.Effect;
 import com.ge.predix.acs.rest.AttributeAdapterConnection;
 import com.ge.predix.acs.rest.AttributeConnector;
@@ -48,12 +46,6 @@ import net.sf.json.JSONObject;
 
 @ContextConfiguration("classpath:integration-test-spring-context.xml")
 public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpringContextTests {
-
-    @Value("${ADAPTER_IS_ACTIVE:true}")
-    private boolean adapterIsActive;
-
-    @Value("${ADAPTER_MAX_CACHED_INTERVAL_MINUTES:60}")
-    private int adapterMaxCachedIntervalMinutes;
 
     @Value("${ADAPTER_ENDPOINT}")
     private String adapterEndpoint;
@@ -103,16 +95,16 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
     @Autowired
     private PolicyHelper policyHelper;
 
-    private static final String IDENTIFIER = "part/03f95db1-4255-4265-a509-f7bca3e1fee4";
-    private static final String ASSET_URI_PATH_SEGMENT = '/' + IDENTIFIER;
+    private static final String TEST_PART_ID = "part/03f95db1-4255-4265-a509-f7bca3e1fee4";
+    private static final String ASSET_URI_PATH_SEGMENT = '/' + TEST_PART_ID;
 
     private Zone zone;
     private OAuth2RestTemplate acsAdminRestTemplate;
     private OAuth2RestTemplate assetRestTemplate;
     private boolean registerWithZac;
-    private URI resourceAttributeConnectorUrl;
+    private URI resourceAttributeConnectorUrl = URI.create(this.zoneHelper.getAcsBaseURL() + "/v1/resource/connector");
 
-    private HttpHeaders getHeadersWithAcsZoneId() throws IOException {
+    private HttpHeaders zoneHeader() throws IOException {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.set(PolicyHelper.PREDIX_ZONE_ID, this.zone.getSubdomain());
         return httpHeaders;
@@ -156,23 +148,22 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
         JSONArray partArray = new JSONArray();
         partArray.add(part);
 
-        ResponseEntity<String> response = this.assetRestTemplate
-                .exchange(this.assetUrl + "/part", HttpMethod.POST, new HttpEntity<>(partArray.toString(), httpHeaders),
-                        String.class);
+        this.assetRestTemplate.exchange(this.assetUrl + "/part", HttpMethod.POST,
+                new HttpEntity<>(partArray.toString(), httpHeaders), String.class);
     }
 
-    private void configureAttributeConnector(final boolean isActive, final int maxCachedIntervalMinutes,
-            final List<AttributeAdapterConnection> adapters) throws IOException {
+    private void configureAttributeConnector(final boolean isActive) throws IOException {
+
+        List<AttributeAdapterConnection> adapters = Collections.singletonList(new AttributeAdapterConnection(
+                this.adapterEndpoint, this.adapterUaaTokenUrl, this.adapterUaaClientId, this.adapterUaaClientSecret));
+
         AttributeConnector attributeConnector = new AttributeConnector();
         attributeConnector.setIsActive(isActive);
-        attributeConnector.setMaxCachedIntervalMinutes(maxCachedIntervalMinutes);
         attributeConnector.setAdapters(new HashSet<>(adapters));
-        this.resourceAttributeConnectorUrl = URI.create(this.zoneHelper.getAcsBaseURL() + AcsApiUriTemplates.V1
-                + AcsApiUriTemplates.RESOURCE_CONNECTOR_URL);
-        HttpHeaders httpHeaders = this.getHeadersWithAcsZoneId();
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+        HttpHeaders headers = this.zoneHeader();
+        headers.setContentType(MediaType.APPLICATION_JSON);
         this.acsAdminRestTemplate.exchange(this.resourceAttributeConnectorUrl, HttpMethod.PUT,
-                new HttpEntity<>(attributeConnector, httpHeaders), AttributeConnector.class);
+                new HttpEntity<>(attributeConnector, headers), AttributeConnector.class);
     }
 
     private void setupPredixAcs() throws IOException {
@@ -206,16 +197,13 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
         HttpHeaders httpHeaders = this.getHeadersWithAssetZoneId();
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        this.assetRestTemplate
-                .exchange(this.assetUrl + ASSET_URI_PATH_SEGMENT, HttpMethod.DELETE, new HttpEntity<>(httpHeaders),
-                        Void.class);
+        this.assetRestTemplate.exchange(this.assetUrl + ASSET_URI_PATH_SEGMENT, HttpMethod.DELETE,
+                new HttpEntity<>(httpHeaders), Void.class);
     }
 
     private void deconfigureAttributeConnector() throws IOException {
-        HttpHeaders httpHeaders = this.getHeadersWithAcsZoneId();
-        this.acsAdminRestTemplate
-                .exchange(this.resourceAttributeConnectorUrl, HttpMethod.DELETE, new HttpEntity<>(httpHeaders),
-                        Void.class);
+        this.acsAdminRestTemplate.exchange(this.resourceAttributeConnectorUrl, HttpMethod.DELETE,
+                new HttpEntity<>(zoneHeader()), Void.class);
     }
 
     @AfterClass
@@ -225,30 +213,25 @@ public class PolicyEvaluationWithAttributeConnectorIT extends AbstractTestNGSpri
     }
 
     @Test(dataProvider = "adapterStatusesAndResultingEffects")
-    public void testPolicyEvaluationWithAdapters(final boolean adapterActive, final Effect effect) throws Exception {
-        HttpHeaders httpHeaders = this.getHeadersWithAcsZoneId();
-        String testPolicyName = this.policyHelper
-                .setTestPolicy(this.acsAdminRestTemplate, httpHeaders, this.zoneHelper.getAcsBaseURL(),
-                        "src/test/resources/policy-set-with-one-policy-using-resource-attributes-from-asset-adapter"
-                                + ".json");
+    public void testPolicyEvaluationWithAdapters(final boolean adapterActive, final Effect expectedEffect)
+            throws Exception {
+        String testPolicyName = this.policyHelper.setTestPolicy(this.acsAdminRestTemplate, zoneHeader(),
+                this.zoneHelper.getAcsBaseURL(),
+                "src/test/resources/policy-set-with-one-policy-using-resource-attributes-from-asset-adapter.json");
 
         try {
-            this.configureAttributeConnector(adapterActive, this.adapterMaxCachedIntervalMinutes, Collections
-                    .singletonList(new AttributeAdapterConnection(this.adapterEndpoint, this.adapterUaaTokenUrl,
-                            this.adapterUaaClientId, this.adapterUaaClientSecret)));
-            PolicyEvaluationRequestV1 policyEvaluationRequest = this.policyHelper
-                    .createMultiplePolicySetsEvalRequest("", "", IDENTIFIER, null,
-                            new LinkedHashSet<>(Collections.singletonList(testPolicyName)));
-            ResponseEntity<PolicyEvaluationResult> policyEvaluationResponse = this.acsAdminRestTemplate
-                    .postForEntity(this.zoneHelper.getAcsBaseURL() + PolicyHelper.ACS_POLICY_EVAL_API_PATH,
-                            new HttpEntity<>(policyEvaluationRequest, httpHeaders), PolicyEvaluationResult.class);
+            this.configureAttributeConnector(adapterActive);
+            PolicyEvaluationRequestV1 policyEvaluationRequest = this.policyHelper.createEvalRequest("GET",
+                    "testSubject", TEST_PART_ID, null);
+            ResponseEntity<PolicyEvaluationResult> policyEvaluationResponse = this.acsAdminRestTemplate.postForEntity(
+                    this.zoneHelper.getAcsBaseURL() + PolicyHelper.ACS_POLICY_EVAL_API_PATH,
+                    new HttpEntity<>(policyEvaluationRequest, zoneHeader()), PolicyEvaluationResult.class);
             Assert.assertEquals(policyEvaluationResponse.getStatusCode(), HttpStatus.OK);
             PolicyEvaluationResult policyEvaluationResult = policyEvaluationResponse.getBody();
-            Assert.assertEquals(policyEvaluationResult.getEffect(), effect);
+            Assert.assertEquals(policyEvaluationResult.getEffect(), expectedEffect);
         } finally {
-            this.policyHelper
-                    .deletePolicySet(this.acsAdminRestTemplate, this.zoneHelper.getAcsBaseURL(), testPolicyName,
-                            httpHeaders);
+            this.policyHelper.deletePolicySet(this.acsAdminRestTemplate, this.zoneHelper.getAcsBaseURL(),
+                    testPolicyName, zoneHeader());
             this.deconfigureAttributeConnector();
         }
     }
